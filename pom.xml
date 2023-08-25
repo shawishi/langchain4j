@@ -24,7 +24,8 @@
         <module>langchain4j-milvus</module>
         <module>langchain4j-pinecone</module>
         <module>langchain4j-weaviate</module>
-        
+        <module>langchain4j-spark</module>
+
     </modules>
 
 </project>
