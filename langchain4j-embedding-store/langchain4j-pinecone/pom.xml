@@ -3,12 +3,10 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-parent</artifactId>
+        <artifactId>langchain4j-embedding-store</artifactId>
         <version>0.22.0</version>
-        <relativePath>../langchain4j-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>langchain4j-pinecone</artifactId>
@@ -28,7 +26,6 @@
         <dependency>
             <groupId>io.pinecone</groupId>
             <artifactId>pinecone-client</artifactId>
-            <version>0.2.3</version>
             <exclusions>
                 <!-- due to CVE-2022-41915 vulnerability -->
                 <exclusion>
@@ -40,7 +37,6 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-codec</artifactId>
-            <version>4.1.94.Final</version>
         </dependency>
 
         <dependency>

@@ -3,12 +3,10 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-parent</artifactId>
+        <artifactId>langchain4j-embedding-store</artifactId>
         <version>0.22.0</version>
-        <relativePath>../langchain4j-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>langchain4j-weaviate</artifactId>
@@ -30,7 +28,6 @@
         <dependency>
             <groupId>io.weaviate</groupId>
             <artifactId>client</artifactId>
-            <version>4.2.1</version>
         </dependency>
 
     </dependencies>
