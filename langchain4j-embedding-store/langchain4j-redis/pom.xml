@@ -3,20 +3,18 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>dev.langchain4j</groupId>
-        <artifactId>langchain4j-parent</artifactId>
+        <artifactId>langchain4j-embedding-store</artifactId>
         <version>0.22.0</version>
-        <relativePath>../langchain4j-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>langchain4j-redis</artifactId>
     <packaging>jar</packaging>
 
     <name>LangChain4j integration with Redis</name>
-    <description>Uses jedis library which has a BSD 3-Clause license:
-        https://github.com/weaviate/java-client/blob/main/LICENSE
+    <description>Uses jedis library which has a MIT license:
+        https://github.com/redis/jedis/blob/master/LICENSE
     </description>
 
     <dependencies>
@@ -29,7 +27,6 @@
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
-            <version>4.4.3</version>
         </dependency>
     </dependencies>
 
