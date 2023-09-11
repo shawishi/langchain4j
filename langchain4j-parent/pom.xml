@@ -37,7 +37,7 @@
         <jackson.version>2.12.7.1</jackson.version>
         <milvus.version>2.2.9</milvus.version>
         <weaviate.version>4.2.1</weaviate.version>
-        <jedis.version>4.4.3</jedis.version>
+        <jedis.version>5.0.0</jedis.version>
     </properties>
 
     <dependencyManagement>

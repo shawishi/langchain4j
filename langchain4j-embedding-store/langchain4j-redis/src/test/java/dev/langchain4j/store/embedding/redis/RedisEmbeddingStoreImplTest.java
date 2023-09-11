@@ -4,9 +4,11 @@ import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.internal.Utils;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import redis.clients.jedis.search.RediSearchUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,7 +22,14 @@ class RedisEmbeddingStoreImplTest {
 
     private final EmbeddingStore<TextSegment> store = new RedisEmbeddingStoreImpl(
             "http://localhost:6379",
-            null);
+            RedisSchema.builder()
+                    .indexName("test-index")
+                    .prefix("test")
+                    .idFieldName("id")
+                    .vectorFieldName("vector")
+                    .scalarFieldName("text")
+                    .dimension(4)
+                    .build());
 
     @Test
     void testAdd() {
@@ -62,5 +71,16 @@ class RedisEmbeddingStoreImplTest {
     void testAddEmpty() {
         // see log
         store.addAll(Collections.emptyList());
+    }
+
+    @Test
+    void test() {
+        System.out.println(Arrays.toString(RediSearchUtil.ToByteArray(new float[]{0.80f, 0.70f, 0.90f, 0.55f})));
+    }
+
+    @Test
+    void testFindRelevant() {
+        List<EmbeddingMatch<TextSegment>> res = store.findRelevant(Embedding.from(Arrays.asList(0.80f, 0.70f, 0.90f, 0.55f)), 5);
+        res.forEach(System.out::println);
     }
 }
