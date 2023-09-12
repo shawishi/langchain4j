@@ -8,7 +8,6 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import redis.clients.jedis.search.RediSearchUtil;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,7 +23,7 @@ class RedisEmbeddingStoreImplTest {
             "http://localhost:6379",
             RedisSchema.builder()
                     .indexName("test-index")
-                    .prefix("test")
+                    .prefix("test:")
                     .idFieldName("id")
                     .vectorFieldName("vector")
                     .scalarFieldName("text")
@@ -71,11 +70,6 @@ class RedisEmbeddingStoreImplTest {
     void testAddEmpty() {
         // see log
         store.addAll(Collections.emptyList());
-    }
-
-    @Test
-    void test() {
-        System.out.println(Arrays.toString(RediSearchUtil.ToByteArray(new float[]{0.80f, 0.70f, 0.90f, 0.55f})));
     }
 
     @Test

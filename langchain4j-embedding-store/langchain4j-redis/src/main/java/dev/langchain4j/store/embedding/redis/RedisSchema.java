@@ -25,9 +25,10 @@ public class RedisSchema {
             .idFieldName("id")
             .vectorFieldName("vector")
             .scalarFieldName("text")
+            .metadataFieldName("metadata")
             .dimension(512)
             .build();
-    private static final String FIELD_NAME_PREFIX = "$.";
+    public static final String SCORE_FIELD_NAME = "vector_score";
     private static final Schema.VectorField.VectorAlgo DEFAULT_VECTOR_ALGORITHM = Schema.VectorField.VectorAlgo.HNSW;
     private static final MetricType DEFAULT_METRIC_TYPE = MetricType.COSINE;
     private static final DataType DEFAULT_DATA_TYPE = DataType.FLOAT32;
@@ -38,6 +39,7 @@ public class RedisSchema {
     private final String idFieldName;
     private final String vectorFieldName;
     private final String scalarFieldName;
+    private final String metadataFieldName;
 
     private final Schema.VectorField.VectorAlgo vectorAlgorithm;
     private final int dimension;
@@ -46,13 +48,14 @@ public class RedisSchema {
 
     @Builder
     public RedisSchema(String indexName, String prefix,
-                       String idFieldName, String vectorFieldName, String scalarFieldName,
+                       String idFieldName, String vectorFieldName, String scalarFieldName, String metadataFieldName,
                        Schema.VectorField.VectorAlgo vectorAlgorithm, Integer dimension, MetricType metricType, DataType dataType) {
         indexName = ensureNotNull(indexName, "indexName");
         prefix = ensureNotNull(prefix, "prefix");
         idFieldName = ensureNotNull(idFieldName, "idFieldName");
         vectorFieldName = ensureNotNull(vectorFieldName, "vectorFieldName");
         scalarFieldName = ensureNotNull(scalarFieldName, "scalarFieldName");
+        metadataFieldName = ensureNotNull(metadataFieldName, "metadataFieldName");
         dimension = ensureNotNull(dimension, "dimension");
 
         this.indexName = indexName;
@@ -62,6 +65,7 @@ public class RedisSchema {
         this.idFieldName = idFieldName;
         this.vectorFieldName = vectorFieldName;
         this.scalarFieldName = scalarFieldName;
+        this.metadataFieldName = metadataFieldName;
 
         this.vectorAlgorithm = vectorAlgorithm;
         this.dimension = dimension;
@@ -76,8 +80,10 @@ public class RedisSchema {
         vectorAttrs.put("TYPE", Optional.ofNullable(dataType).map(DataType::getName).orElse(DEFAULT_DATA_TYPE.getName()));
         vectorAttrs.put("INITIAL_CAP", 5);
         return new Schema()
-                .addNumericField(idFieldName)
+                // actual do not need id field, because key contains id
+                .addTextField(idFieldName, 1.0)
                 .addTextField(scalarFieldName, 1.0)
+                .addTextField("metadata", 1.0)
                 .addVectorField(vectorFieldName, Optional.ofNullable(vectorAlgorithm).orElse(DEFAULT_VECTOR_ALGORITHM), vectorAttrs);
     }
 }

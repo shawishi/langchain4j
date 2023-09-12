@@ -1,6 +1,7 @@
 package dev.langchain4j.store.embedding.redis;
 
 import com.google.gson.Gson;
+import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.internal.ValidationUtils;
@@ -12,9 +13,6 @@ import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.search.*;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -90,11 +88,13 @@ public class RedisEmbeddingStoreImpl implements EmbeddingStore<TextSegment> {
     @Override
     public List<EmbeddingMatch<TextSegment>> findRelevant(Embedding referenceEmbedding, int maxResults, double minScore) {
         // Using KNN query on @vector field
-        String queryTemplate = "*=>[ KNN %d @%s $BLOB AS vector_score ]";
-        Query query = new Query(String.format(queryTemplate, maxResults, schema.getVectorFieldName()))
+        // FIXME: the score is not correct
+        String queryTemplate = "*=>[ KNN %d @%s $BLOB AS %s ]";
+        Query query = new Query(String.format(queryTemplate, maxResults, schema.getVectorFieldName(), RedisSchema.SCORE_FIELD_NAME))
                 .addParam("BLOB", ToByteArray(referenceEmbedding.vector()))
-                .returnFields(schema.getIdFieldName(), schema.getVectorFieldName(), schema.getScalarFieldName(), "vector_score")
-                .setSortBy("vector_score", false)
+                .returnFields(schema.getIdFieldName(), schema.getVectorFieldName(), schema.getScalarFieldName(),
+                        RedisSchema.SCORE_FIELD_NAME, schema.getMetadataFieldName())
+                .setSortBy(RedisSchema.SCORE_FIELD_NAME, false)
                 .dialect(2);
 
         SearchResult result = client.ftSearch(schema.getIndexName(), query);
@@ -128,33 +128,36 @@ public class RedisEmbeddingStoreImpl implements EmbeddingStore<TextSegment> {
             TextSegment textSegment = embedded == null ? null : embedded.get(i);
             Map<byte[], byte[]> vectorField = new HashMap<>();
             vectorField.put(schema.getVectorFieldName().getBytes(), ToByteArray(embedding.vector()));
-            String key = schema.getPrefix() + ":" + id;
+            String key = schema.getPrefix() + id;
             client.hset(key.getBytes(), vectorField);
 
             // see https://github.com/redis/jedis/issues/3339
             client.hsetnx(key, schema.getIdFieldName(), id);
             if (textSegment != null) {
                 client.hsetnx(key, schema.getScalarFieldName(), textSegment.text());
-                client.hsetnx(key.getBytes(), "metadata".getBytes(), mapToBytes(textSegment.metadata().asMap()));
+                client.hsetnx(key, schema.getMetadataFieldName(), GSON.toJson(textSegment.metadata().asMap()));
             }
         }
     }
 
+    @SuppressWarnings("unchecked")
     private List<EmbeddingMatch<TextSegment>> toEmbeddingMatch(List<Document> documents) {
-        log.info(GSON.toJson(documents));
-        // TODO: extract result documents
-        return new ArrayList<>();
-    }
-
-    private byte[] mapToBytes(Map<String, String> map) {
-        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-        try {
-            ObjectOutputStream out = new ObjectOutputStream(byteOut);
-            out.writeObject(map);
-            out.flush();
-        } catch (IOException e) {
-            log.error("[RedisEmbeddingStoreImpl] map to byte array error", e);
+        if (documents == null || documents.isEmpty()) {
+            return new ArrayList<>();
         }
-        return byteOut.toByteArray();
+
+        return documents.stream().map(document -> {
+            Double score = Double.parseDouble(document.getString(RedisSchema.SCORE_FIELD_NAME));
+            String id = document.getId().substring(schema.getPrefix().length());
+            String text = document.hasProperty(schema.getScalarFieldName()) ? document.getString(schema.getScalarFieldName()) : null;
+            TextSegment embedded = null;
+            if (text != null) {
+                Metadata metadata = new Metadata(GSON.fromJson(document.getString(schema.getMetadataFieldName()), Map.class));
+                embedded = new TextSegment(text, metadata);
+            }
+            // can't get vector field because it's transfer to hash
+            // Embedding embedding = new Embedding(bytesToFloats(document.getString(schema.getVectorFieldName()).getBytes()));
+            return new EmbeddingMatch<>(score, id, new Embedding(new float[0]), embedded);
+        }).collect(Collectors.toList());
     }
 }
