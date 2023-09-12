@@ -14,21 +14,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * disabled default, because this need local deployment of Elasticsearch
+ * disabled default, because this need local deployment of Redis
  */
 @Disabled
 class RedisEmbeddingStoreImplTest {
 
-    private final EmbeddingStore<TextSegment> store = new RedisEmbeddingStoreImpl(
-            "http://localhost:6379",
-            RedisSchema.builder()
-                    .indexName("test-index")
-                    .prefix("test:")
-                    .idFieldName("id")
-                    .vectorFieldName("vector")
-                    .scalarFieldName("text")
-                    .dimension(4)
-                    .build());
+    private final EmbeddingStore<TextSegment> store = new RedisEmbeddingStoreImpl("http://localhost:6379", 4);
 
     @Test
     void testAdd() {
@@ -74,7 +65,7 @@ class RedisEmbeddingStoreImplTest {
 
     @Test
     void testFindRelevant() {
-        List<EmbeddingMatch<TextSegment>> res = store.findRelevant(Embedding.from(Arrays.asList(0.80f, 0.70f, 0.90f, 0.55f)), 5);
+        List<EmbeddingMatch<TextSegment>> res = store.findRelevant(Embedding.from(Arrays.asList(0.80f, 0.45f, 0.89f, 0.24f)), 5);
         res.forEach(System.out::println);
     }
 }

@@ -13,11 +13,15 @@ import redis.clients.jedis.JedisPooled;
 import redis.clients.jedis.exceptions.JedisDataException;
 import redis.clients.jedis.search.*;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static dev.langchain4j.internal.Utils.isCollectionEmpty;
 import static dev.langchain4j.internal.Utils.randomUUID;
+import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static redis.clients.jedis.search.RediSearchUtil.ToByteArray;
 
 /**
@@ -31,21 +35,14 @@ public class RedisEmbeddingStoreImpl implements EmbeddingStore<TextSegment> {
     private final JedisPooled client;
     private final RedisSchema schema;
 
-    public RedisEmbeddingStoreImpl(String url,
-                                   RedisSchema schema) {
-        client = new JedisPooled(url);
-        this.schema = Optional.ofNullable(schema).orElse(RedisSchema.DEFAULT_SCHEMA);
+    public RedisEmbeddingStoreImpl(String url, Integer dimension) {
+        url = ensureNotNull(url, "url");
+        dimension = ensureNotNull(dimension, "dimension");
 
-        // create index
-        if (!isIndexExist(this.schema.getIndexName())) {
-            IndexDefinition indexDefinition = new IndexDefinition(IndexDefinition.Type.HASH);
-            indexDefinition.setPrefixes(this.schema.getPrefix());
-            String res = client.ftCreate(this.schema.getIndexName(), IndexOptions.defaultOptions()
-                    .setDefinition(indexDefinition), this.schema.toSchema());
-            if (!"OK".equals(res)) {
-                throw new JedisDataException("create index error, msg=" + res);
-            }
-        }
+        client = new JedisPooled(url);
+        schema = RedisSchema.builder().dimension(dimension).build();
+
+        createIndex(schema.getIndexName());
     }
 
     @Override
@@ -88,13 +85,11 @@ public class RedisEmbeddingStoreImpl implements EmbeddingStore<TextSegment> {
     @Override
     public List<EmbeddingMatch<TextSegment>> findRelevant(Embedding referenceEmbedding, int maxResults, double minScore) {
         // Using KNN query on @vector field
-        // FIXME: the score is not correct
         String queryTemplate = "*=>[ KNN %d @%s $BLOB AS %s ]";
         Query query = new Query(String.format(queryTemplate, maxResults, schema.getVectorFieldName(), RedisSchema.SCORE_FIELD_NAME))
                 .addParam("BLOB", ToByteArray(referenceEmbedding.vector()))
-                .returnFields(schema.getIdFieldName(), schema.getVectorFieldName(), schema.getScalarFieldName(),
-                        RedisSchema.SCORE_FIELD_NAME, schema.getMetadataFieldName())
-                .setSortBy(RedisSchema.SCORE_FIELD_NAME, false)
+                .returnFields(schema.getVectorFieldName(), schema.getScalarFieldName(), RedisSchema.SCORE_FIELD_NAME, schema.getMetadataFieldName())
+                .setSortBy(RedisSchema.SCORE_FIELD_NAME, true)
                 .dialect(2);
 
         SearchResult result = client.ftSearch(schema.getIndexName(), query);
@@ -103,8 +98,20 @@ public class RedisEmbeddingStoreImpl implements EmbeddingStore<TextSegment> {
         return toEmbeddingMatch(documents);
     }
 
+    private void createIndex(String indexName) {
+        if (!isIndexExist(indexName)) {
+            IndexDefinition indexDefinition = new IndexDefinition(IndexDefinition.Type.HASH);
+            indexDefinition.setPrefixes(schema.getPrefix());
+            String res = client.ftCreate(indexName, IndexOptions.defaultOptions()
+                    .setDefinition(indexDefinition), schema.toSchema());
+            if (!"OK".equals(res)) {
+                throw new JedisDataException("create index error, msg=" + res);
+            }
+        }
+    }
+
     private boolean isIndexExist(String indexName) {
-        // jedis do not contain method like ftExists
+        // redis do not contain command like ftExists
         Set<String> indexSets = client.ftList();
         return indexSets.contains(indexName);
     }
@@ -128,15 +135,12 @@ public class RedisEmbeddingStoreImpl implements EmbeddingStore<TextSegment> {
             TextSegment textSegment = embedded == null ? null : embedded.get(i);
             Map<byte[], byte[]> vectorField = new HashMap<>();
             vectorField.put(schema.getVectorFieldName().getBytes(), ToByteArray(embedding.vector()));
+            if (textSegment != null) {
+                vectorField.put(schema.getScalarFieldName().getBytes(), textSegment.text().getBytes());
+                vectorField.put(schema.getMetadataFieldName().getBytes(), GSON.toJson(textSegment.metadata().asMap()).getBytes());
+            }
             String key = schema.getPrefix() + id;
             client.hset(key.getBytes(), vectorField);
-
-            // see https://github.com/redis/jedis/issues/3339
-            client.hsetnx(key, schema.getIdFieldName(), id);
-            if (textSegment != null) {
-                client.hsetnx(key, schema.getScalarFieldName(), textSegment.text());
-                client.hsetnx(key, schema.getMetadataFieldName(), GSON.toJson(textSegment.metadata().asMap()));
-            }
         }
     }
 
@@ -155,9 +159,16 @@ public class RedisEmbeddingStoreImpl implements EmbeddingStore<TextSegment> {
                 Metadata metadata = new Metadata(GSON.fromJson(document.getString(schema.getMetadataFieldName()), Map.class));
                 embedded = new TextSegment(text, metadata);
             }
-            // can't get vector field because it's transfer to hash
-            // Embedding embedding = new Embedding(bytesToFloats(document.getString(schema.getVectorFieldName()).getBytes()));
-            return new EmbeddingMatch<>(score, id, new Embedding(new float[0]), embedded);
+            // FIXME: This is not accurate embedding results, depending on the encoding of Redis.
+            // But I think embedding is not important in many use case. Even LangChain do not return
+            Embedding embedding = new Embedding(bytesToFloats(document.getString(schema.getVectorFieldName()).getBytes(ISO_8859_1)));
+            return new EmbeddingMatch<>(score, id, embedding, embedded);
         }).collect(Collectors.toList());
+    }
+
+    private float[] bytesToFloats(byte[] bytes) {
+        float[] output = new float[bytes.length / Float.BYTES];
+        ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(output);
+        return output;
     }
 }
