@@ -1,5 +1,8 @@
 # LangChain for Java: Supercharge your Java application with the power of LLMs
 
+[![](https://img.shields.io/twitter/follow/langchain4j)](https://twitter.com/intent/follow?screen_name=langchain4j)
+[![](https://dcbadge.vercel.app/api/server/V5qHrWNVf?compact=true&style=flat)](https://discord.gg/V5qHrWNVf)
+
 ## Project goals
 
 The goal of this project is to simplify the integration of AI/LLM capabilities into your Java application.
@@ -26,6 +29,24 @@ Please see examples of how LangChain4j can be used in `langchain4j-examples` rep
 - [Example with Spring Boot](https://github.com/langchain4j/langchain4j-examples/blob/main/spring-boot-example/src/test/java/dev/example/CustomerSupportApplicationTest.java)
 
 ## News
+
+29 September:
+- Updates to models API: return `Response<T>` instead of `T`. `Response<T>` contains token usage and finish reason.
+- All model and embedding store integrations now live in their own modules
+- Integration with [Vespa](https://vespa.ai/) by [@Heezer](https://github.com/Heezer)
+- Integration with [Elasticsearch](https://www.elastic.co/) by [@Martin7-1](https://github.com/Martin7-1)
+- Integration with [Redis](https://redis.io/) by [@Martin7-1](https://github.com/Martin7-1)
+- Integration with [Milvus](https://milvus.io/) by [@IuriiKoval](https://github.com/IuriiKoval)
+- Integration with [Astra DB](https://www.datastax.com/products/datastax-astra) and [Cassandra](https://cassandra.apache.org/) by [@clun](https://github.com/clun)
+- Added support for overlap in document splitters
+- Some bugfixes and smaller improvements 
+
+29 August:
+- Offline [text classification with embeddings](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/embedding/classification/EmbeddingModelTextClassifierExample.java)
+- Integration with [Google Vertex AI](https://cloud.google.com/vertex-ai) by [@kuraleta](https://github.com/kuraleta)
+- Reworked [document splitters](https://github.com/langchain4j/langchain4j/blob/main/langchain4j/src/main/java/dev/langchain4j/data/document/splitter/DocumentSplitters.java)
+- In-memory embedding store can now be easily persisted
+- [And more](https://github.com/langchain4j/langchain4j/releases/tag/0.22.0)
 
 19 August:
 - Integration with [Azure OpenAI](https://learn.microsoft.com/en-us/azure/ai-services/openai/overview) by [@kuraleta](https://github.com/kuraleta)
@@ -184,21 +205,21 @@ See example [here](https://github.com/langchain4j/langchain4j-examples/blob/main
 
 ## Getting started
 
-1. Add LangChain4j dependency to your project:
+1. Add LangChain4j OpenAI dependency to your project:
     - Maven:
       ```
       <dependency>
           <groupId>dev.langchain4j</groupId>
-          <artifactId>langchain4j</artifactId>
-          <version>0.21.0</version>
+          <artifactId>langchain4j-open-ai</artifactId>
+          <version>0.23.0</version>
       </dependency>
       ```
     - Gradle:
       ```
-      implementation 'dev.langchain4j:langchain4j:0.21.0'
+      implementation 'dev.langchain4j:langchain4j-open-ai:0.23.0'
       ```
 
-2. Import your OpenAI/HuggingFace API key:
+2. Import your OpenAI API key:
     ```java
     String apiKey = System.getenv("OPENAI_API_KEY");
     ```
@@ -210,9 +231,9 @@ See example [here](https://github.com/langchain4j/langchain4j-examples/blob/main
     ```java
     OpenAiChatModel model = OpenAiChatModel.withApiKey(apiKey);
     
-    AiMessage answer = model.sendUserMessage("Hello world!");
+    String answer = model.generate("Hello world!");
     
-    System.out.println(answer.text()); // Hello! How can I assist you today?
+    System.out.println(answer); // Hello! How can I assist you today?
     ```
 
 ## Disclaimer
@@ -238,6 +259,10 @@ Please note that the library is in active development and:
     - [Chats](https://platform.openai.com/docs/guides/chat) (sync + streaming + functions)
     - [Completions](https://platform.openai.com/docs/guides/completion) (sync + streaming)
     - [Embeddings](https://platform.openai.com/docs/guides/embeddings)
+- Integration with [Google Vertex AI](https://cloud.google.com/vertex-ai) for:
+    - [Chats](https://cloud.google.com/vertex-ai/docs/generative-ai/chat/chat-prompts)
+    - [Completions](https://cloud.google.com/vertex-ai/docs/generative-ai/text/text-overview)
+    - [Embeddings](https://cloud.google.com/vertex-ai/docs/generative-ai/embeddings/get-text-embeddings)
 - Integration with [HuggingFace Inference API](https://huggingface.co/docs/api-inference/index) for:
     - [Chats](https://huggingface.co/docs/api-inference/detailed_parameters#text-generation-task)
     - [Completions](https://huggingface.co/docs/api-inference/detailed_parameters#text-generation-task)
@@ -246,22 +271,31 @@ Please note that the library is in active development and:
   - Chats (sync + streaming + functions)
   - Completions (sync + streaming)
   - Embeddings
+- Integration with [DashScope](https://dashscope.aliyun.com/) for:
+    - Chats (sync + streaming)
+    - Completions (sync + streaming)
+    - Embeddings
 - [Chat memory](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/ChatMemoryExamples.java)
 - [Persistent chat memory](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/ServiceWithPersistentMemoryForEachUserExample.java)
 - [Chat with Documents](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/ChatWithDocumentsExamples.java)
-- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/embedding/store/ChromaEmbeddingStoreExample.java) with [Chroma](https://www.trychroma.com/)
-- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/embedding/store/PineconeEmbeddingStoreExample.java) with [Pinecone](https://www.pinecone.io/)
-- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/embedding/store/WeaviateEmbeddingStoreExample.java) with [Weaviate](https://weaviate.io/)
-- [In-memory embedding store](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/embedding/store/InMemoryEmbeddingStoreExample.java) (for prototyping and testing)
+- Integration with [Astra DB](https://www.datastax.com/products/datastax-astra) and [Cassandra](https://cassandra.apache.org/)
+- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/chroma-example/src/main/java/ChromaEmbeddingStoreExample.java) with [Chroma](https://www.trychroma.com/)
+- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/elasticsearch-example/src/main/java/ElasticsearchEmbeddingStoreExample.java) with [Elasticsearch](https://www.elastic.co/)
+- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/milvus-example/src/main/java/MilvusEmbeddingStoreExample.java) with [Milvus](https://milvus.io/)
+- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/pinecone-example/src/main/java/PineconeEmbeddingStoreExample.java) with [Pinecone](https://www.pinecone.io/)
+- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/redis-example/src/main/java/RedisEmbeddingStoreExample.java) with [Redis](https://redis.io/)
+- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/vespa-example/src/main/java/VespaEmbeddingStoreExample.java) with [Vespa](https://vespa.ai/)
+- [Integration](https://github.com/langchain4j/langchain4j-examples/blob/main/weaviate-example/src/main/java/WeaviateEmbeddingStoreExample.java) with [Weaviate](https://weaviate.io/)
+- [In-memory embedding store](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/embedding/store/InMemoryEmbeddingStoreExample.java) (can be persisted)
 - [Structured outputs](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/OtherServiceExamples.java)
 - [Prompt templates](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/PromptTemplateExamples.java)
 - [Structured prompt templates](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/StructuredPromptTemplateExamples.java)
 - [Streaming of LLM responses](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/StreamingExamples.java)
-- [Loading txt, pdf, doc, xls and ppt documents from the file system and via URL](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/DocumentLoaderExamples.java)
+- [Loading txt, html, pdf, doc, xls and ppt documents from the file system and via URL](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/DocumentLoaderExamples.java)
 - [Splitting documents into segments](https://github.com/langchain4j/langchain4j-examples/blob/main/other-examples/src/main/java/ChatWithDocumentsExamples.java):
-    - by paragraph
-    - by sentence
-    - by character count
+    - by paragraphs, lines, sentences, words, etc
+    - recursively
+    - with overlap
 - Token count estimation (so that you can predict how much you will pay)
 
 ## Coming soon:

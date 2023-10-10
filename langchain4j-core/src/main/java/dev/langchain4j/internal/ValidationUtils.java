@@ -29,4 +29,34 @@ public class ValidationUtils {
 
         return string;
     }
+
+    public static void ensureTrue(boolean expression, String msg) {
+        if (!expression) {
+            throw illegalArgument(msg);
+        }
+    }
+
+    public static int ensureGreaterThanZero(Integer i, String name) {
+        if (i == null || i <= 0) {
+            throw illegalArgument("%s must be greater than zero, but is: %s", name, i);
+        }
+
+        return i;
+    }
+
+    public static double ensureBetween(Double d, double min, double max, String name) {
+        if (d == null || d < min || d > max) {
+            throw illegalArgument("%s must be between %s and %s, but is: %s", name, min, max, d);
+        }
+
+        return d;
+    }
+
+    public static int ensureBetween(Integer i, int min, int max, String name) {
+        if (i == null || i < min || i > max) {
+            throw illegalArgument("%s must be between %s and %s, but is: %s", name, min, max, i);
+        }
+
+        return i;
+    }
 }

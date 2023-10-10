@@ -18,6 +18,7 @@ import dev.langchain4j.model.input.structured.StructuredPrompt;
 import dev.langchain4j.model.input.structured.StructuredPromptProcessor;
 import dev.langchain4j.model.moderation.Moderation;
 import dev.langchain4j.model.moderation.ModerationModel;
+import dev.langchain4j.model.output.Response;
 import dev.langchain4j.retriever.Retriever;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,7 +176,7 @@ public class AiServices<T> {
      * @return builder
      */
     public AiServices<T> chatLanguageModel(ChatLanguageModel chatLanguageModel) {
-        context.chatLanguageModel = chatLanguageModel;
+        context.chatModel = chatLanguageModel;
         return this;
     }
 
@@ -190,7 +191,7 @@ public class AiServices<T> {
      * @return builder
      */
     public AiServices<T> streamingChatLanguageModel(StreamingChatLanguageModel streamingChatLanguageModel) {
-        context.streamingChatLanguageModel = streamingChatLanguageModel;
+        context.streamingChatModel = streamingChatLanguageModel;
         return this;
     }
 
@@ -320,7 +321,7 @@ public class AiServices<T> {
      */
     public T build() {
 
-        if (context.chatLanguageModel == null && context.streamingChatLanguageModel == null) {
+        if (context.chatModel == null && context.streamingChatModel == null) {
             throw illegalConfiguration("Please specify either chatLanguageModel or streamingChatLanguageModel");
         }
 
@@ -383,7 +384,7 @@ public class AiServices<T> {
 
                         if (context.hasChatMemory()) {
                             ChatMemory chatMemory = context.chatMemory(memoryId);
-                            systemMessage.ifPresent(it -> addIfNeeded(it, chatMemory));
+                            systemMessage.ifPresent(chatMemory::add);
                             chatMemory.add(userMessage);
                         }
 
@@ -402,7 +403,7 @@ public class AiServices<T> {
                             return new AiServiceTokenStream(messages, context, memoryId); // TODO moderation
                         }
 
-                        AiMessage aiMessage = context.chatLanguageModel.sendMessages(messages, context.toolSpecifications);
+                        Response<AiMessage> response = context.chatModel.generate(messages, context.toolSpecifications);
 
                         verifyModerationIfNeeded(moderationFuture);
 
@@ -410,10 +411,10 @@ public class AiServices<T> {
                         while (true) { // TODO limit number of cycles
 
                             if (context.hasChatMemory()) {
-                                context.chatMemory(memoryId).add(aiMessage);
+                                context.chatMemory(memoryId).add(response.content());
                             }
 
-                            toolExecutionRequest = aiMessage.toolExecutionRequest();
+                            toolExecutionRequest = response.content().toolExecutionRequest();
                             if (toolExecutionRequest == null) {
                                 break;
                             }
@@ -426,19 +427,17 @@ public class AiServices<T> {
                             ChatMemory chatMemory = context.chatMemory(memoryId);
                             chatMemory.add(toolExecutionResultMessage);
 
-                            // This time, tools are not sent because, at this point, the LLM cannot call another tool; it should respond to the user.
-                            // This is the current behavior of OpenAI, though it might change in the future.
-                            aiMessage = context.chatLanguageModel.sendMessages(chatMemory.messages());
+                            response = context.chatModel.generate(chatMemory.messages(), context.toolSpecifications);
                         }
 
-                        return ServiceOutputParser.parse(aiMessage, method.getReturnType());
+                        return ServiceOutputParser.parse(response, method.getReturnType());
                     }
 
                     private Future<Moderation> triggerModerationIfNeeded(Method method, List<ChatMessage> messages) {
                         if (method.isAnnotationPresent(Moderate.class)) {
                             return executor.submit(() -> {
                                 List<ChatMessage> messagesToModerate = removeToolMessages(messages);
-                                return context.moderationModel.moderate(messagesToModerate);
+                                return context.moderationModel.moderate(messagesToModerate).content();
                             });
                         }
                         return null;
@@ -461,22 +460,6 @@ public class AiServices<T> {
                             } catch (InterruptedException | ExecutionException e) {
                                 throw new RuntimeException(e);
                             }
-                        }
-                    }
-
-                    private void addIfNeeded(ChatMessage systemMessage, ChatMemory chatMemory) { // TODO move to memory?
-                        boolean shouldAddSystemMessage = true;
-                        List<ChatMessage> messages = chatMemory.messages();
-                        for (int i = messages.size() - 1; i >= 0; i--) {
-                            if (messages.get(i) instanceof dev.langchain4j.data.message.SystemMessage) {
-                                if (messages.get(i).equals(systemMessage)) {
-                                    shouldAddSystemMessage = false;
-                                }
-                                break;
-                            }
-                        }
-                        if (shouldAddSystemMessage) {
-                            chatMemory.add(systemMessage);
                         }
                     }
                 });

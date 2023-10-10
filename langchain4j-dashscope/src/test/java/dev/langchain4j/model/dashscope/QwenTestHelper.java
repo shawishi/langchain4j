@@ -11,12 +11,23 @@ import java.util.List;
 import java.util.stream.Stream;
 
 public class QwenTestHelper {
+    public static Stream<Arguments> languageModelNameProvider() {
+        return Stream.of(
+                Arguments.of(QwenModelName.QWEN_TURBO),
+                Arguments.of(QwenModelName.QWEN_PLUS),
+                Arguments.of(QwenModelName.QWEN_SPARK_V1),
+                Arguments.of(QwenModelName.QWEN_SPARK_V2),
+                Arguments.of(QwenModelName.QWEN_7B_CHAT),
+                Arguments.of(QwenModelName.QWEN_14B_CHAT)
+        );
+    }
+
     public static Stream<Arguments> chatModelNameProvider() {
         return Stream.of(
-                Arguments.of(QwenModelName.QWEN_V1),
-                Arguments.of(QwenModelName.QWEN_PLUS_V1),
-                Arguments.of(QwenModelName.QWEN_7B_CHAT_V1),
-                Arguments.of(QwenModelName.QWEN_SPARK_V1)
+                Arguments.of(QwenModelName.QWEN_TURBO),
+                Arguments.of(QwenModelName.QWEN_PLUS),
+                Arguments.of(QwenModelName.QWEN_7B_CHAT),
+                Arguments.of(QwenModelName.QWEN_14B_CHAT)
         );
     }
 
