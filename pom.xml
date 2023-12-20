@@ -44,6 +44,7 @@
 
         <!-- document loaders -->
         <module>document-loaders/langchain4j-document-loader-amazon-s3</module>
+        <module>document-loaders/langchain4j-document-loader-aliyun-oss</module>
 
         <!-- document parsers -->
         <module>document-parsers/langchain4j-document-parser-apache-pdfbox</module>
@@ -51,6 +52,7 @@
 
         <!-- code execution engines -->
         <module>langchain4j-graal</module>
+
 
     </modules>
 
